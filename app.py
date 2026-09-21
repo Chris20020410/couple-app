@@ -48,7 +48,6 @@ def _to_tuple(row, keys):
 TASK_KEYS = ["id", "direction", "content", "done", "created_at", "image"]
 WISH_KEYS = ["id", "name", "budget", "note", "proposer", "status", "created_at"]
 PLAN_KEYS = ["id", "title", "details", "created_at"]
-MESSAGE_KEYS = ["id", "author", "content", "created_at"]
 
 
 def add_task(direction, content, image=None):
@@ -120,28 +119,6 @@ def get_travel_plans():
 def delete_travel_plan(plan_id):
     """把某条行程从数据库删除（结束归档）"""
     supabase.table("travel_plans").delete().eq("id", plan_id).execute()
-
-
-def add_message(author, content):
-    """往留言板新增一条留言"""
-    supabase.table("messages").insert({
-        "author": author,
-        "content": content,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }).execute()
-
-
-def get_messages():
-    """读取所有留言，新的排前面"""
-    res = supabase.table("messages").select("*").execute()
-    rows = [_to_tuple(r, MESSAGE_KEYS) for r in res.data]
-    rows.sort(key=lambda r: -r[0])  # id 降序，新的在前
-    return rows
-
-
-def delete_message(message_id):
-    """删除一条留言"""
-    supabase.table("messages").delete().eq("id", message_id).execute()
 
 
 # ============ 1.5 图片存储相关函数（改用 Supabase Storage） ============
@@ -283,14 +260,22 @@ def photos_page():
     st.subheader("我们的回忆")
     files = list_images(IMAGE_BUCKET)
     if files:
+        selected = []
         cols = st.columns(3)
         for i, name in enumerate(files):
             with cols[i % 3]:
                 st.image(image_url(IMAGE_BUCKET, name), caption=name, use_container_width=True)
-                if st.button("🗑️ 删除", key=f"del_{name}"):
+                if st.checkbox("选择删除", key=f"chk_{name}"):
+                    selected.append(name)
+
+        if selected:
+            if st.button(f"🗑️ 批量删除所选（{len(selected)} 张）", key="batch_del_btn"):
+                for name in selected:
                     delete_image(IMAGE_BUCKET, name)
-                    st.success("已删除～")
-                    st.rerun()
+                st.success(f"已删除 {len(selected)} 张照片～")
+                st.rerun()
+        else:
+            st.caption("勾选照片下方的复选框，即可批量删除")
     else:
         st.info("还没有照片，上传一张开启回忆吧～")
 
@@ -467,45 +452,6 @@ def travel_page():
                 st.rerun()
 
 
-# ============ 8.5 首页（含留言板）模块 ============
-
-def home_page():
-    """首页：欢迎语 + 留言板"""
-    st.title("欢迎来到我们的小天地 ❤️")
-    st.write("在左侧选择功能开始使用～")
-
-    st.markdown("---")
-    st.subheader("💬 留言板")
-
-    with st.form("message_form", clear_on_submit=True):
-        author = st.selectbox("我是", ["Jessie", "Chris"])
-        content = st.text_area("想对 TA 说点什么…", height=100)
-        submitted = st.form_submit_button("留言 💌")
-
-    if submitted:
-        if content.strip():
-            add_message(author, content.strip())
-            st.success("已留言～")
-            st.rerun()
-        else:
-            st.error("留言内容不能为空～")
-
-    messages = get_messages()
-    if not messages:
-        st.info("还没有留言，说第一句话吧～")
-        return
-
-    for m in messages:
-        m_id, author, content, created_at = m
-        with st.container(border=True):
-            top = st.columns([6, 1])
-            top[0].markdown(f"**{author}** · _{created_at}_")
-            if top[1].button("🗑️", key=f"del_msg_{m_id}", help="删除这条留言"):
-                delete_message(m_id)
-                st.rerun()
-            st.write(content)
-
-
 # ============ 9. 主流程 ============
 
 def main():
@@ -526,7 +472,8 @@ def main():
             st.rerun()
 
         if menu == "🏠 首页":
-            home_page()
+            st.title("欢迎来到我们的小天地 ❤️")
+            st.write("请在左侧选择功能开始使用～")
         elif menu == "📋 任务与记账":
             tasks_page()
         elif menu == "🖼️ 照片墙":
