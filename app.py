@@ -240,8 +240,12 @@ def photos_page():
         accept_multiple_files=True,
     )
     if uploaded:
-        for f in uploaded:
-            upload_image(IMAGE_BUCKET, f.name, f.getvalue(), f.type)
+        for i, f in enumerate(uploaded):
+            # Supabase Storage 的对象名只接受 ASCII 字符，中文/emoji 文件名会报 InvalidKey，
+            # 所以这里改成时间戳 + 序号的安全文件名（和任务附件页一致）
+            ext = os.path.splitext(f.name)[1].lower()
+            safe_name = datetime.now().strftime("%Y%m%d%H%M%S%f") + f"_{i}" + ext
+            upload_image(IMAGE_BUCKET, safe_name, f.getvalue(), f.type)
         st.success("上传成功！")
         st.rerun()
 
