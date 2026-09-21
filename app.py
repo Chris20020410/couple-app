@@ -21,7 +21,7 @@ st.set_page_config(page_title="Jessie&Chris", page_icon="❤️", layout="wide")
 PASSWORD = "520"
 
 # Supabase Storage 里的两个存储桶名字
-IMAGE_BUCKET = "images"        # 照片墙
+IMAGE_BUCKET = 'images'        # 照片墙
 ATTACH_BUCKET = "attachments"  # 任务附件
 
 # ---- 读取 Supabase 连接信息（从 Streamlit Secrets）----
