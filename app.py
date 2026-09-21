@@ -139,7 +139,11 @@ def image_url(bucket, filename):
 
 def list_images(bucket):
     """列出某个存储桶里的所有文件名"""
-    files = supabase.storage.from_(bucket).list()
+    try:
+        files = supabase.storage.from_(bucket).list()
+    except Exception:
+        # 桶不存在 / 网络异常时，不要因为“列出失败”就整页崩溃，按空处理
+        return []
     if isinstance(files, dict):  # 兼容部分版本把结果包在 data 里
         files = files.get("data", [])
     names = []
