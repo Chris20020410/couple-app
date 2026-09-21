@@ -154,6 +154,11 @@ def list_images(bucket):
     return names
 
 
+def delete_image(bucket, filename):
+    """从存储桶里删除一张图片"""
+    supabase.storage.from_(bucket).remove([filename])
+
+
 # ============ 2. 登录模块 ============
 
 def login_page():
@@ -256,6 +261,10 @@ def photos_page():
         for i, name in enumerate(files):
             with cols[i % 3]:
                 st.image(image_url(IMAGE_BUCKET, name), caption=name, use_container_width=True)
+                if st.button("🗑️ 删除", key=f"del_{name}"):
+                    delete_image(IMAGE_BUCKET, name)
+                    st.success("已删除～")
+                    st.rerun()
     else:
         st.info("还没有照片，上传一张开启回忆吧～")
 
