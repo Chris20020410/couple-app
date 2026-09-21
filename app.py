@@ -257,7 +257,7 @@ def photos_page():
         st.success("上传成功！")
         st.rerun()
 
-    st.subheader("我们的回忆")
+    st.subheader("美女照片存放处")
     files = list_images(IMAGE_BUCKET)
     if files:
         selected = []
